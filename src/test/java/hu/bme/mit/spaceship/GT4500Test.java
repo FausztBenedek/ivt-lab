@@ -8,6 +8,7 @@ import org.mockito.internal.matchers.Any;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -101,6 +102,20 @@ public class GT4500Test {
    */
   @Test
   public void testCase3() {
+    setupPrimaryWithOneBullet();
+    when(secondaryTorpedoStore.fire(1)).thenReturn(true);
+    when(secondaryTorpedoStore.isEmpty()).thenReturn(false);
+
+    boolean first = ship.fireTorpedo(FiringMode.SINGLE);
+    boolean second = ship.fireTorpedo(FiringMode.SINGLE);
+    boolean third = ship.fireTorpedo(FiringMode.SINGLE);
+
+    assertTrue(first && second && third);
+    verify(primaryTorpedoStore, times(1)).fire(1);
+    verify(secondaryTorpedoStore, times(2)).fire(1);
+  }
+
+  private void setupPrimaryWithOneBullet() {
     fireCounter = 1;
     when(primaryTorpedoStore.fire(1)).then(new Answer<Boolean>() {
       @Override
@@ -116,16 +131,6 @@ public class GT4500Test {
         return fireCounter <= 0;
       }
     });
-    when(secondaryTorpedoStore.fire(1)).thenReturn(true);
-    when(secondaryTorpedoStore.isEmpty()).thenReturn(false);
-
-    boolean first = ship.fireTorpedo(FiringMode.SINGLE);
-    boolean second = ship.fireTorpedo(FiringMode.SINGLE);
-    boolean third = ship.fireTorpedo(FiringMode.SINGLE);
-
-    assertTrue(first && second && third);
-    verify(primaryTorpedoStore, times(1)).fire(1);
-    verify(secondaryTorpedoStore, times(2)).fire(1);
   }
 
   /**
@@ -169,5 +174,66 @@ public class GT4500Test {
 
     boolean returnValue = ship.fireTorpedo(FiringMode.SINGLE);
     assertFalse(returnValue);
+  }
+
+  /**
+   * a.	Ha az elsődlegesben sok töltény van, a másodlagosban viszont egy sem, akkor SINGLE mód esetén
+   * a két lövés esetén a másodlagosnak
+   * nem szabad elsülnie, az elsődlegesnek pedig kétszer.
+   */
+  @Test
+  public void whiteBoxTestForCoverage() {
+    when(primaryTorpedoStore.isEmpty()).thenReturn(false);
+    when(primaryTorpedoStore.fire(1)).thenReturn(true);
+    when(secondaryTorpedoStore.isEmpty()).thenReturn(true);
+
+    ship.fireTorpedo(FiringMode.SINGLE);
+    ship.fireTorpedo(FiringMode.SINGLE);
+
+    verify(secondaryTorpedoStore, never()).fire(anyInt());
+    verify(primaryTorpedoStore, times(2)).fire(1);
+  }
+  /**
+   * Not implemented fireLaser() method test
+   */
+  @Test
+  public void fireLaserTest() {
+    assertFalse(ship.fireLaser(FiringMode.ALL));
+    assertFalse(ship.fireLaser(FiringMode.SINGLE));
+  }
+
+  /**
+   * Ha a fireing mode null, akkor NullPointerException-t dob
+   */
+  @Test()
+  public void fireingModeNullTest() {
+    assertThrows(NullPointerException.class, () -> {
+      ship.fireTorpedo(null);
+    });
+  }
+
+  /**
+   * SINGLE módban ha az elsődlegesben csak egy töltény, a másodlagos üres, akkor a harmadik tüzelés sikertelen
+   */
+  @Test
+  public void singleModeWhiteBoxTest() {
+    setupPrimaryWithOneBullet();
+    when(secondaryTorpedoStore.isEmpty()).thenReturn(true);
+
+    ship.fireTorpedo(FiringMode.SINGLE);
+    ship.fireTorpedo(FiringMode.SINGLE);
+    boolean third = ship.fireTorpedo(FiringMode.SINGLE);
+    assertFalse(third);
+  }
+  /**
+   * All módban, ha mindkettő üres, akkor a tüzelés sikertelen
+   */
+  @Test
+  public void allModeBothEmptyTest() {
+    when(primaryTorpedoStore.isEmpty()).thenReturn(true);
+    when(secondaryTorpedoStore.isEmpty()).thenReturn(true);
+
+    boolean success = ship.fireTorpedo(FiringMode.ALL);
+    assertFalse(success);
   }
 }
