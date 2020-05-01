@@ -1,5 +1,6 @@
 package hu.bme.mit.spaceship;
 
+import static junit.framework.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -156,5 +157,17 @@ public class GT4500Test {
     verify(secondaryTorpedoStore, times(1)).fire(1);
     verify(primaryTorpedoStore, never()).fire(anyInt());
 
+  }
+
+  /**
+   * Ha mindkét torpedoStore üres, akkor a visszatérési érték hamis
+   */
+  @Test
+  public void whiteboxTest() {
+    when(primaryTorpedoStore.isEmpty()).thenReturn(true);
+    when(secondaryTorpedoStore.isEmpty()).thenReturn(true);
+
+    boolean returnValue = ship.fireTorpedo(FiringMode.SINGLE);
+    assertFalse(returnValue);
   }
 }
